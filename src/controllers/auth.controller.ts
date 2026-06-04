@@ -1,11 +1,6 @@
 import { Request, Response } from 'express';
-import Joi from 'joi';
+import { credentialsSchema } from '../schemas/auth.schema';
 import { loginUser, registerUser } from '../services/auth.service';
-
-const credentialsSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-});
 
 export const register = async (req: Request, res: Response) => {
   const { error, value } = credentialsSchema.validate(req.body);

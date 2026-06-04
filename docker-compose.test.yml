@@ -1,0 +1,15 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: logistic-app-be-test-db
+    environment:
+      POSTGRES_DB: logistic_db_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg-test-data:/var/lib/postgresql/data
+
+volumes:
+  pg-test-data:

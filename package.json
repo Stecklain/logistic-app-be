@@ -1,25 +1,29 @@
 {
   "name": "logistic-app-be",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend de logística con TDD, PostgreSQL y OpenRouteService",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev:test": "ts-node src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev:db:up": "node ./scripts/docker-compose.mjs docker-compose.dev.yml up -d",
+    "dev:db:down": "node ./scripts/docker-compose.mjs docker-compose.dev.yml down -v",
+    "migrate": "ts-node src/scripts/run-migrations.ts",
+    "seed:test": "ts-node src/scripts/seed-test-data.ts",
+    "test": "mocha --require ts-node/register --require test/setup.ts --extension ts \"test/**/*.spec.ts\"",
+    "test:db:up": "node ./scripts/docker-compose.mjs docker-compose.test.yml up -d",
+    "test:db:down": "node ./scripts/docker-compose.mjs docker-compose.test.yml down -v",
+    "test:db:migrate": "ts-node src/scripts/run-migrations.ts --env test",
+    "test:full": "npm run test:db:up && npm run test:db:migrate && npm test"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Stecklain/logistic-app-be.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/Stecklain/logistic-app-be/issues"
-  },
-  "homepage": "https://github.com/Stecklain/logistic-app-be#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
@@ -34,11 +38,17 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/chai": "^4.3.20",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^25.8.0",
+    "@types/supertest": "^6.0.3",
+    "chai": "^4.5.0",
+    "mocha": "^11.7.1",
     "nodemon": "^3.1.14",
+    "supertest": "^7.1.1",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }
