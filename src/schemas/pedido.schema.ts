@@ -8,8 +8,8 @@ const basePedidoSchema = {
   origenAlta: Joi.string()
     .valid(...ORIGENES_ALTA)
     .default('manual'),
-  lat: Joi.number().min(-90).max(90).optional(),
-  lng: Joi.number().min(-180).max(180).optional(),
+  lat: Joi.number().min(-90).max(90).allow(null).optional(),
+  lng: Joi.number().min(-180).max(180).allow(null).optional(),
 };
 
 export const createPedidoSchema = Joi.object(basePedidoSchema);

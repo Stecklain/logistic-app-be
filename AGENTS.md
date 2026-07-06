@@ -14,7 +14,7 @@
 
 ## Testing obligatorio
 - El estándar de testing del backend es `Mocha + Chai`.
-- Las pruebas HTTP deben cubrir rutas y middleware usando una base PostgreSQL real de testing levantada con Docker.
+- Las pruebas HTTP deben cubrir rutas y middleware usando una base PostgreSQL real de testing (`npm run test:db:up`, PostgreSQL nativo, sin Docker).
 - Se trabaja con enfoque TDD estricto:
   1. escribir test;
   2. ver fallo;

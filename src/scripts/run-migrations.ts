@@ -8,17 +8,16 @@ async function run() {
   const dataSource = buildDataSource({
     host: process.env[isTest ? 'TEST_DB_HOST' : 'DB_HOST'] || 'localhost',
     port: parseInt(
-      process.env[isTest ? 'TEST_DB_PORT' : 'DB_PORT'] || (isTest ? '5433' : '5432'),
+      process.env[isTest ? 'TEST_DB_PORT' : 'DB_PORT'] || '5432',
       10
     ),
     database:
       process.env[isTest ? 'TEST_DB_NAME' : 'DB_NAME'] ||
       (isTest ? 'logistic_db_test' : 'logistic_db'),
     username:
-      process.env[isTest ? 'TEST_DB_USER' : 'DB_USER'] || 'postgres',
+      process.env[isTest ? 'TEST_DB_USER' : 'DB_USER'] || 'logistic_app',
     password:
-      process.env[isTest ? 'TEST_DB_PASSWORD' : 'DB_PASSWORD'] ||
-      (isTest ? 'postgres' : ''),
+      process.env[isTest ? 'TEST_DB_PASSWORD' : 'DB_PASSWORD'] || 'logistic_app',
   });
 
   await dataSource.initialize();

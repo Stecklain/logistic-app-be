@@ -6,7 +6,7 @@ import { registerUser } from '../services/auth.service';
 async function seed() {
   await initializeDataSource({
     host: process.env.TEST_DB_HOST,
-    port: parseInt(process.env.TEST_DB_PORT || '5433', 10),
+    port: parseInt(process.env.TEST_DB_PORT || '5432', 10),
     database: process.env.TEST_DB_NAME,
     username: process.env.TEST_DB_USER,
     password: process.env.TEST_DB_PASSWORD,
