@@ -4,6 +4,8 @@ import {
   createPedidoHandler,
   deletePedidoHandler,
   getPedidoByIdHandler,
+  getPedidoReporteHandler,
+  getPedidosPendientesPorFechaHandler,
   listPedidosHandler,
   updatePedidoEstadoHandler,
   updatePedidoHandler,
@@ -13,6 +15,8 @@ const router = Router();
 
 router.use(verifyToken);
 router.get('/', listPedidosHandler);
+router.get('/reporte', getPedidoReporteHandler);
+router.get('/pendientes-por-fecha', getPedidosPendientesPorFechaHandler);
 router.get('/:id', getPedidoByIdHandler);
 router.post('/', createPedidoHandler);
 router.put('/:id', updatePedidoHandler);

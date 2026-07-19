@@ -2,3 +2,6 @@ node_modules/
 dist/
 .env
 *.sql
+logs/
+backups/
+test-results/

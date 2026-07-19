@@ -24,6 +24,9 @@ export class Ruta {
   @Column({ length: 20 })
   estado!: RutaEstado;
 
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  zona!: string | null;
+
   @Column({ name: 'origen_texto', length: 255 })
   origenTexto!: string;
 

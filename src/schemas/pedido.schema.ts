@@ -1,4 +1,4 @@
-import Joi from 'joi';
+import Joi from '../utils/joi';
 import { ORIGENES_ALTA, PEDIDO_ESTADOS } from '../constants/pedido';
 
 const basePedidoSchema = {
@@ -42,4 +42,14 @@ export const listPedidosSchema = Joi.object({
     .optional(),
   localidad: Joi.string().optional(),
   codigoTracking: Joi.string().optional(),
+});
+
+export const pedidoReporteSchema = Joi.object({
+  anio: Joi.number().integer().min(2000).max(2100).optional(),
+  mes: Joi.number().integer().min(1).max(12).optional(),
+});
+
+export const pedidosPendientesPorFechaSchema = Joi.object({
+  desde: Joi.string().isoDate().optional(),
+  hasta: Joi.string().isoDate().optional(),
 });

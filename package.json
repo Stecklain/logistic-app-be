@@ -12,6 +12,9 @@
     "dev:db:down": "node ./scripts/manage-database.mjs drop dev",
     "migrate": "ts-node src/scripts/run-migrations.ts",
     "seed:test": "ts-node src/scripts/seed-test-data.ts",
+    "seed:bulk": "ts-node src/scripts/seed-bulk-pedidos.ts",
+    "backup": "ts-node src/scripts/backup-database.ts",
+    "backup:restore": "ts-node src/scripts/restore-database.ts",
     "test": "mocha --require ts-node/register --require test/setup.ts --extension ts \"test/**/*.spec.ts\"",
     "test:db:up": "node ./scripts/manage-database.mjs create test",
     "test:db:down": "node ./scripts/manage-database.mjs drop test",
@@ -32,9 +35,11 @@
     "express-rate-limit": "^8.5.2",
     "joi": "^18.2.1",
     "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.6.0",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
-    "typeorm": "^0.3.29"
+    "typeorm": "^0.3.29",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -44,6 +49,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.8.0",
+    "@types/node-cron": "^3.0.11",
     "@types/supertest": "^6.0.3",
     "chai": "^4.5.0",
     "mocha": "^11.7.1",

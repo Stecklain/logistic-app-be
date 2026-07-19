@@ -5,6 +5,8 @@ import authRoutes from './routes/auth.routes';
 import pedidoRoutes from './routes/pedido.routes';
 import rutaRoutes from './routes/ruta.routes';
 import trackingRoutes from './routes/tracking.routes';
+import userRoutes from './routes/user.routes';
+import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 
 export function createApp() {
   const app = express();
@@ -36,7 +38,7 @@ export function createApp() {
   app.use(
     rateLimit({
       windowMs: 60 * 1000,
-      max: 60,
+      max: process.env.NODE_ENV === 'test' ? 1000 : 60,
       message: { message: 'Demasiadas peticiones, intenta más tarde' },
     })
   );
@@ -49,6 +51,10 @@ export function createApp() {
   app.use('/api/pedidos', pedidoRoutes);
   app.use('/api/rutas', rutaRoutes);
   app.use('/api/tracking', trackingRoutes);
+  app.use('/api/users', userRoutes);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }

@@ -1,4 +1,4 @@
-import Joi from 'joi';
+import Joi from '../utils/joi';
 
 export const generateRutaSchema = Joi.object({
   fecha: Joi.string().isoDate().required(),

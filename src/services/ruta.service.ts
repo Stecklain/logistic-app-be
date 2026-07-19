@@ -6,6 +6,7 @@ import {
   calculateOptimalRoute,
   geocodeAddress,
 } from './routing.service';
+import { agruparPedidosPorZona } from './zonificacion.service';
 
 interface GenerateRutaPayload {
   fecha: string;
@@ -90,37 +91,49 @@ export async function generateRutaDelDia(payload: GenerateRutaPayload) {
     }
   });
 
-  const optimization = await calculateOptimalRoute(
-    origin,
-    pedidosValidos.map((pedido) => ({
-      pedidoId: pedido.id,
-      lat: pedido.lat!,
-      lng: pedido.lng!,
-    }))
+  const zonas = agruparPedidosPorZona(pedidosValidos);
+  const rutasGeneradas: Ruta[] = [];
+
+  for (const zona of zonas) {
+    const optimization = await calculateOptimalRoute(
+      origin,
+      zona.pedidos.map((pedido) => ({
+        pedidoId: pedido.id,
+        lat: pedido.lat!,
+        lng: pedido.lng!,
+      }))
+    );
+
+    const ruta = rutaRepo.create({
+      fecha,
+      estado: 'planificada',
+      zona: zona.nombre,
+      origenTexto: payload.origenTexto,
+      origenLat: origin.lat,
+      origenLng: origin.lng,
+      routeGeometryJson: JSON.stringify(optimization.geometry),
+    });
+
+    const savedRuta = await rutaRepo.save(ruta);
+
+    await rutaPedidoRepo.save(
+      optimization.orderedStops.map((stop) =>
+        rutaPedidoRepo.create({
+          rutaId: savedRuta.id,
+          pedidoId: stop.pedidoId,
+          ordenVisita: stop.ordenVisita,
+          distanciaMetros: stop.distanciaMetros,
+          duracionSegundos: stop.duracionSegundos,
+        })
+      )
+    );
+
+    rutasGeneradas.push(savedRuta);
+  }
+
+  const rutasCompletas = await Promise.all(
+    rutasGeneradas.map((ruta) => getRutaById(ruta.id))
   );
 
-  const ruta = rutaRepo.create({
-    fecha,
-    estado: 'planificada',
-    origenTexto: payload.origenTexto,
-    origenLat: origin.lat,
-    origenLng: origin.lng,
-    routeGeometryJson: JSON.stringify(optimization.geometry),
-  });
-
-  const savedRuta = await rutaRepo.save(ruta);
-
-  await rutaPedidoRepo.save(
-    optimization.orderedStops.map((stop) =>
-      rutaPedidoRepo.create({
-        rutaId: savedRuta.id,
-        pedidoId: stop.pedidoId,
-        ordenVisita: stop.ordenVisita,
-        distanciaMetros: stop.distanciaMetros,
-        duracionSegundos: stop.duracionSegundos,
-      })
-    )
-  );
-
-  return getRutaById(savedRuta.id);
+  return rutasCompletas as Ruta[];
 }

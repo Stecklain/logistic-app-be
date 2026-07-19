@@ -12,10 +12,17 @@ async function seed() {
   });
 
   try {
-    await registerUser('admin@logistic.com', 'password123');
-    console.log('Usuario de prueba creado: admin@logistic.com / password123');
+    await registerUser('admin@logistic.com', 'password123', 'admin');
+    console.log('Usuario admin creado: admin@logistic.com / password123');
   } catch {
-    console.log('El usuario ya existe, omitiendo.');
+    console.log('El usuario admin ya existe, omitiendo.');
+  }
+
+  try {
+    await registerUser('operador@logistic.com', 'password123', 'logistica');
+    console.log('Usuario logística creado: operador@logistic.com / password123');
+  } catch {
+    console.log('El usuario logística ya existe, omitiendo.');
   }
 }
 

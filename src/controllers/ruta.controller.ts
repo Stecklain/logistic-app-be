@@ -41,8 +41,8 @@ export async function generateRutaDelDiaHandler(req: Request, res: Response) {
   }
 
   try {
-    const ruta = await generateRutaDelDia(value);
-    res.status(201).json(ruta);
+    const rutas = await generateRutaDelDia(value);
+    res.status(201).json(rutas);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'No fue posible generar la ruta';

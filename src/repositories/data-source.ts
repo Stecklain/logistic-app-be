@@ -4,6 +4,11 @@ import { Ruta } from '../entities/Ruta';
 import { RutaPedido } from '../entities/RutaPedido';
 import { User } from '../entities/User';
 import { InitialSchema1717520000000 } from '../migrations/1717520000000-InitialSchema';
+import { AddUserRoleAndActive1720400000000 } from '../migrations/1720400000000-AddUserRoleAndActive';
+import { AddPedidoIndexes1720400000001 } from '../migrations/1720400000001-AddPedidoIndexes';
+import { EnableUnaccent1720400000002 } from '../migrations/1720400000002-EnableUnaccent';
+import { AddLoginLockout1720400000003 } from '../migrations/1720400000003-AddLoginLockout';
+import { AddRutaZona1720400000004 } from '../migrations/1720400000004-AddRutaZona';
 
 type DataSourceOverrides = Partial<{
   host: string;
@@ -40,7 +45,14 @@ export function buildDataSource(options: DataSourceOverrides = {}) {
     logging: false,
     synchronize: false,
     entities: [User, Pedido, Ruta, RutaPedido],
-    migrations: [InitialSchema1717520000000],
+    migrations: [
+      InitialSchema1717520000000,
+      AddUserRoleAndActive1720400000000,
+      AddPedidoIndexes1720400000001,
+      EnableUnaccent1720400000002,
+      AddLoginLockout1720400000003,
+      AddRutaZona1720400000004,
+    ],
     ...options,
   });
 }

@@ -1,4 +1,4 @@
-import Joi from 'joi';
+import Joi from '../utils/joi';
 
 export const credentialsSchema = Joi.object({
   email: Joi.string().email().required(),

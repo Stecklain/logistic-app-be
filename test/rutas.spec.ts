@@ -63,7 +63,40 @@ describe('Ruta routes', () => {
       })
 
     expect(response.status).to.equal(201)
-    expect(response.body.rutaPedidos).to.have.length(2)
+    expect(response.body).to.have.length(1)
+    expect(response.body[0].zona).to.equal('Buenos Aires')
+    expect(response.body[0].rutaPedidos).to.have.length(2)
+  })
+
+  it('generates one route per zone when pedidos are far apart', async () => {
+    await request(app)
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        direccionDestino: 'Av. Cabildo 3000',
+        localidad: 'Belgrano',
+        fechaEntrega: '2026-06-05',
+        lat: -34.56,
+        lng: -58.46,
+      })
+
+    const response = await request(app)
+      .post('/api/rutas/generar')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fecha: '2026-06-05',
+        origenTexto: 'Depósito central',
+        origenLat: -34.58,
+        origenLng: -58.45,
+      })
+
+    expect(response.status).to.equal(201)
+    expect(response.body).to.have.length(2)
+    const totalParadas = response.body.reduce(
+      (total: number, ruta: { rutaPedidos: unknown[] }) => total + ruta.rutaPedidos.length,
+      0
+    )
+    expect(totalParadas).to.equal(3)
   })
 
   it('lists routes', async () => {

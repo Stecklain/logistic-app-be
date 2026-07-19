@@ -99,6 +99,76 @@ describe('Pedido routes', () => {
     expect(response.body.estado).to.equal('entregado')
   })
 
+  it('rejects invalid state transitions', async () => {
+    const created = await request(app)
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        direccionDestino: 'Av. Santa Fe 1111',
+        localidad: 'Buenos Aires',
+        fechaEntrega: '2026-06-05',
+        lat: -34.6,
+        lng: -58.4,
+      })
+
+    await request(app)
+      .patch(`/api/pedidos/${created.body.id}/estado`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ estado: 'entregado' })
+
+    const response = await request(app)
+      .patch(`/api/pedidos/${created.body.id}/estado`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ estado: 'cancelado' })
+
+    expect(response.status).to.equal(400)
+  })
+
+  it('finds pedidos by localidad ignoring accents', async () => {
+    await request(app)
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        direccionDestino: 'Av. Santa Fe 1111',
+        localidad: 'Córdoba',
+        fechaEntrega: '2026-06-05',
+        lat: -31.4,
+        lng: -64.2,
+      })
+
+    const response = await request(app)
+      .get('/api/pedidos?localidad=cordoba')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(response.status).to.equal(200)
+    expect(response.body.items).to.have.length(1)
+  })
+
+  it('rejects editing a delivered pedido', async () => {
+    const created = await request(app)
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        direccionDestino: 'Av. Santa Fe 1111',
+        localidad: 'Buenos Aires',
+        fechaEntrega: '2026-06-05',
+        lat: -34.6,
+        lng: -58.4,
+      })
+
+    await request(app)
+      .patch(`/api/pedidos/${created.body.id}/estado`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ estado: 'entregado' })
+
+    const response = await request(app)
+      .put(`/api/pedidos/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ direccionDestino: 'Otra direccion 999' })
+
+    expect(response.status).to.equal(400)
+  })
+
   it('deletes pedido', async () => {
     const created = await request(app)
       .post('/api/pedidos')
@@ -116,5 +186,82 @@ describe('Pedido routes', () => {
       .set('Authorization', `Bearer ${token}`)
 
     expect(response.status).to.equal(204)
+  })
+
+  it('returns aggregated report data', async () => {
+    await request(app)
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        direccionDestino: 'Av. Santa Fe 1111',
+        localidad: 'Buenos Aires',
+        fechaEntrega: '2026-06-05',
+        lat: -34.6,
+        lng: -58.4,
+      })
+
+    const response = await request(app)
+      .get('/api/pedidos/reporte')
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(response.status).to.equal(200)
+    expect(response.body).to.have.all.keys(
+      'porLocalidadYMes',
+      'porEstado',
+      'porEstadoYMes'
+    )
+    expect(response.body.porLocalidadYMes).to.be.an('array').with.length.greaterThan(0)
+    expect(response.body.porEstado).to.be.an('array').with.length.greaterThan(0)
+    expect(response.body.porEstadoYMes).to.be.an('array')
+  })
+
+  it('only aggregates entregado/cancelado in porEstadoYMes', async () => {
+    const created = await request(app)
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        direccionDestino: 'Av. Santa Fe 1111',
+        localidad: 'Buenos Aires',
+        fechaEntrega: '2026-06-05',
+        lat: -34.6,
+        lng: -58.4,
+      })
+
+    await request(app)
+      .patch(`/api/pedidos/${created.body.id}/estado`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ estado: 'entregado' })
+
+    const response = await request(app)
+      .get('/api/pedidos/reporte')
+      .set('Authorization', `Bearer ${token}`)
+
+    const estados = response.body.porEstadoYMes.map((row: { estado: string }) => row.estado)
+    expect(estados.every((estado: string) => ['entregado', 'cancelado'].includes(estado))).to
+      .be.true
+    expect(estados).to.include('entregado')
+  })
+
+  it('filters the report by year and month', async () => {
+    await request(app)
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        direccionDestino: 'Av. Santa Fe 1111',
+        localidad: 'Buenos Aires',
+        fechaEntrega: '2026-06-05',
+        lat: -34.6,
+        lng: -58.4,
+      })
+
+    const now = new Date()
+    const futureYear = now.getFullYear() + 5
+
+    const response = await request(app)
+      .get(`/api/pedidos/reporte?anio=${futureYear}`)
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(response.status).to.equal(200)
+    expect(response.body.porEstado).to.have.length(0)
   })
 })

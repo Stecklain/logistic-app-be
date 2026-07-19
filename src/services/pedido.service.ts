@@ -1,5 +1,5 @@
-import { ILike } from 'typeorm';
-import { PedidoEstado, PEDIDO_ESTADOS } from '../constants/pedido';
+import { Raw } from 'typeorm';
+import { esTransicionValida, PedidoEstado, PEDIDO_ESTADOS } from '../constants/pedido';
 import { Pedido } from '../entities/Pedido';
 import { getDataSource } from '../repositories/data-source';
 import { geocodeAddress } from './routing.service';
@@ -31,10 +31,15 @@ export async function listPedidos(filters: ListPedidoFilters) {
     where.estado = filters.estado;
   }
   if (filters.localidad) {
-    where.localidad = ILike(`%${filters.localidad}%`);
+    where.localidad = Raw((alias) => `unaccent(${alias}) ILIKE unaccent(:localidad)`, {
+      localidad: `%${filters.localidad}%`,
+    });
   }
   if (filters.codigoTracking) {
-    where.codigoTracking = ILike(`%${filters.codigoTracking}%`);
+    where.codigoTracking = Raw(
+      (alias) => `unaccent(${alias}) ILIKE unaccent(:codigoTracking)`,
+      { codigoTracking: `%${filters.codigoTracking}%` }
+    );
   }
 
   const [items, total] = await repo.findAndCount({
@@ -85,6 +90,10 @@ export async function updatePedido(id: string, payload: Partial<PedidoPayload>) 
     return null;
   }
 
+  if (pedido.estado === 'entregado') {
+    throw new Error('No se puede editar un pedido entregado');
+  }
+
   if (payload.direccionDestino) {
     pedido.direccionDestino = payload.direccionDestino;
   }
@@ -122,6 +131,10 @@ export async function updatePedidoEstado(id: string, estado: PedidoEstado) {
     return null;
   }
 
+  if (!esTransicionValida(pedido.estado, estado)) {
+    throw new Error(`No se puede pasar de "${pedido.estado}" a "${estado}"`);
+  }
+
   pedido.estado = estado;
   return repo.save(pedido);
 }
@@ -129,6 +142,120 @@ export async function updatePedidoEstado(id: string, estado: PedidoEstado) {
 export async function deletePedido(id: string) {
   const result = await getDataSource().getRepository(Pedido).delete({ id });
   return !!result.affected;
+}
+
+interface ReportePeriodo {
+  anio?: number;
+  mes?: number;
+}
+
+export async function getPedidoReporte(periodo: ReportePeriodo = {}) {
+  const repo = getDataSource().getRepository(Pedido);
+
+  const porLocalidadYMesQuery = repo
+    .createQueryBuilder('pedido')
+    .select('pedido.localidad', 'localidad')
+    .addSelect("to_char(pedido.createdAt, 'YYYY-MM')", 'mes')
+    .addSelect('COUNT(*)', 'total')
+    .groupBy('pedido.localidad')
+    .addGroupBy('mes')
+    .orderBy('mes', 'DESC')
+    .addOrderBy('pedido.localidad', 'ASC')
+    .limit(500);
+
+  const porEstadoQuery = repo
+    .createQueryBuilder('pedido')
+    .select('pedido.estado', 'estado')
+    .addSelect('COUNT(*)', 'total')
+    .groupBy('pedido.estado');
+
+  const porEstadoYMesQuery = repo
+    .createQueryBuilder('pedido')
+    .select('pedido.estado', 'estado')
+    .addSelect("to_char(pedido.createdAt, 'YYYY-MM')", 'mes')
+    .addSelect('COUNT(*)', 'total')
+    .andWhere('pedido.estado IN (:...estados)', { estados: ['entregado', 'cancelado'] })
+    .groupBy('pedido.estado')
+    .addGroupBy('mes')
+    .orderBy('mes', 'ASC')
+    .limit(48);
+
+  if (periodo.anio) {
+    porLocalidadYMesQuery.andWhere('EXTRACT(YEAR FROM pedido.createdAt) = :anio', {
+      anio: periodo.anio,
+    });
+    porEstadoQuery.andWhere('EXTRACT(YEAR FROM pedido.createdAt) = :anio', {
+      anio: periodo.anio,
+    });
+    porEstadoYMesQuery.andWhere('EXTRACT(YEAR FROM pedido.createdAt) = :anio', {
+      anio: periodo.anio,
+    });
+  }
+  if (periodo.mes) {
+    porLocalidadYMesQuery.andWhere('EXTRACT(MONTH FROM pedido.createdAt) = :mes', {
+      mes: periodo.mes,
+    });
+    porEstadoQuery.andWhere('EXTRACT(MONTH FROM pedido.createdAt) = :mes', {
+      mes: periodo.mes,
+    });
+    porEstadoYMesQuery.andWhere('EXTRACT(MONTH FROM pedido.createdAt) = :mes', {
+      mes: periodo.mes,
+    });
+  }
+
+  const [porLocalidadYMesRaw, porEstadoRaw, porEstadoYMesRaw] = await Promise.all([
+    porLocalidadYMesQuery.getRawMany(),
+    porEstadoQuery.getRawMany(),
+    porEstadoYMesQuery.getRawMany(),
+  ]);
+
+  return {
+    porLocalidadYMes: porLocalidadYMesRaw.map((row) => ({
+      localidad: row.localidad as string,
+      mes: row.mes as string,
+      total: Number(row.total),
+    })),
+    porEstado: porEstadoRaw.map((row) => ({
+      estado: row.estado as PedidoEstado,
+      total: Number(row.total),
+    })),
+    porEstadoYMes: porEstadoYMesRaw.map((row) => ({
+      estado: row.estado as PedidoEstado,
+      mes: row.mes as string,
+      total: Number(row.total),
+    })),
+  };
+}
+
+interface RangoFechas {
+  desde?: string;
+  hasta?: string;
+}
+
+export async function getPedidosPendientesPorFecha(rango: RangoFechas = {}) {
+  const repo = getDataSource().getRepository(Pedido);
+
+  const query = repo
+    .createQueryBuilder('pedido')
+    .select("to_char(pedido.fechaEntrega, 'YYYY-MM-DD')", 'fecha')
+    .addSelect('COUNT(*)', 'total')
+    .where('pedido.estado = :estado', { estado: 'pendiente' })
+    .groupBy('pedido.fechaEntrega')
+    .orderBy('pedido.fechaEntrega', 'ASC');
+
+  if (rango.desde) {
+    query.andWhere('pedido.fechaEntrega >= :desde', { desde: rango.desde });
+  }
+  if (rango.hasta) {
+    query.andWhere('pedido.fechaEntrega <= :hasta', { hasta: rango.hasta });
+  }
+
+  const rows = await query.getRawMany();
+
+  return rows.map((row) => ({
+    fecha: row.fecha as string,
+    total: Number(row.total),
+  }));
 }
 
 async function generateUniqueTrackingCode() {
